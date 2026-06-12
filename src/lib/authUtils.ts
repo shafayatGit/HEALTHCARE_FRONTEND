@@ -3,6 +3,7 @@ export type UserRole = "SUPER_ADMIN" | "ADMIN" | "DOCTOR" | "PATIENT";
 export const authRoutes = [
   "/login",
   "/register",
+  "/registration",
   "/forgot-password",
   "/reset-password",
   "/verify-email",
@@ -22,15 +23,20 @@ export const commonProtectedRoutes: RouteConfig = {
   pattern: [],
 };
 
+export const doctorProtectedRoutes: RouteConfig = {
+  pattern: [/^\/doctor\/dashboard/], // Matches any path that starts with /doctor/dashboard
+  exact: [],
+};
+
 export const adminProtectedRoutes: RouteConfig = {
   pattern: [/^\/admin\/dashboard/], // Matches any path that starts with /admin/dashboard
   exact: [],
 };
 
-export const doctorProtectedRoutes: RouteConfig = {
-  pattern: [/^\/doctor\/dashboard/], // Matches any path that starts with /doctor/dashboard
-  exact: [],
-};
+// export const superAdminProtectedRoutes : RouteConfig = {
+//     pattern: [/^\/admin\/dashboard/ ], // Matches any path that starts with /super-admin/dashboard
+//     exact : []
+// }
 
 export const patientProtectedRoutes: RouteConfig = {
   pattern: [/^\/dashboard/], // Matches any path that starts with /dashboard
@@ -92,8 +98,7 @@ export const isValidRedirectForRole = (
 
   role = unifySuperAdminAndAdminRole;
 
-  const sanitizedRedirectPath = redirectPath.split("?")[0] || redirectPath;
-  const routeOwner = getRouteOwner(sanitizedRedirectPath);
+  const routeOwner = getRouteOwner(redirectPath);
 
   if (routeOwner === null || routeOwner === "COMMON") {
     return true;

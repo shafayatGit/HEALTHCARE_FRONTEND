@@ -3,6 +3,7 @@ import {
   getDefaultDashboardRoute,
   getRouteOwner,
   isAuthRoute,
+  isValidRedirectForRole,
   UserRole,
 } from "./lib/authUtils";
 import { jwtUtils } from "./lib/jwtUtils";
@@ -35,6 +36,8 @@ export async function proxy(request: NextRequest) {
       accessToken &&
       jwtUtils.verifyToken(accessToken, process.env.JWT_ACCESS_SECRET as string)
         .data;
+
+    console.log(`DecodedAccessToken: ${JSON.stringify(decodedAccessToken)}`); // Debug log
 
     const isValidAccessToken =
       accessToken &&
@@ -90,8 +93,22 @@ export async function proxy(request: NextRequest) {
       return response;
     }
 
-    // Rule - 1 : User is logged in (has access token) and trying to access auth route -> allow
+    // Rule - 1 : User is logged in (has access token) and trying to access auth route -> redirect to a safe route
     if (isAuth && isValidAccessToken) {
+      const redirectParam = request.nextUrl.searchParams.get("redirect");
+      console.log("RedirectParams:", redirectParam);
+
+      if (pathname === "/login" && redirectParam) {
+        const safeRedirect = isValidRedirectForRole(
+          redirectParam,
+          userRole as UserRole,
+        )
+          ? redirectParam
+          : getDefaultDashboardRoute(userRole as UserRole);
+
+        return NextResponse.redirect(new URL(safeRedirect, request.url));
+      }
+
       return NextResponse.redirect(
         new URL(getDefaultDashboardRoute(userRole as UserRole), request.url),
       );

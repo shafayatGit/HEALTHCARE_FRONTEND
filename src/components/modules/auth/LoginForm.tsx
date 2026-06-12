@@ -16,6 +16,7 @@ import { useMutation } from "@tanstack/react-query";
 import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
 import { useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import AppField from "../../shared/Form/AppField";
 import AppSubmitButton from "../../shared/Form/AppSubmitButton";
 import { ILoginPayload, loginZodSchema } from "@/src/zod/auth.vaidation";
@@ -25,9 +26,12 @@ const LoginForm = () => {
 
   const [serverError, setServerError] = useState<string | null>(null);
   const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectPath = searchParams.get("redirect") ?? undefined;
 
   const { mutateAsync, isPending } = useMutation({
-    mutationFn: (payload: ILoginPayload) => loginAction(payload),
+    mutationFn: (payload: ILoginPayload) => loginAction(payload, redirectPath),
   });
 
   const form = useForm({
@@ -41,13 +45,13 @@ const LoginForm = () => {
       try {
         const result = (await mutateAsync(value)) as any;
 
-        if (!result.success) {
+        if (result && !result.success) {
           setServerError(result.message || "Login failed");
           return;
         }
       } catch (error: any) {
-        console.log(`Login failed: ${error.message}`);
-        setServerError(`Login failed: ${error.message}`);
+        console.log(`Login failed: ${error?.message}`);
+        setServerError(`Login failed: ${error?.message || "Unexpected error"}`);
       }
     },
   });

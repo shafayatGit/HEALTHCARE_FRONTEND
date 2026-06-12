@@ -13,10 +13,18 @@ import { ILoginResponse } from "@/src/types/auth.types";
 import { ILoginPayload, loginZodSchema } from "@/src/zod/auth.vaidation";
 import { redirect } from "next/navigation";
 
+export type ILoginActionSuccess = {
+  success: true;
+  redirectPath: string;
+  data?: ILoginResponse;
+};
+
+export type ILoginActionResult = ILoginActionSuccess | ApiErrorResponse;
+
 export const loginAction = async (
   payload: ILoginPayload,
   redirectPath?: string,
-): Promise<ILoginResponse | ApiErrorResponse> => {
+): Promise<ILoginActionResult> => {
   const parsedPayload = loginZodSchema.safeParse(payload);
 
   if (!parsedPayload.success) {
@@ -26,56 +34,60 @@ export const loginAction = async (
       message: firstError,
     };
   }
+
+  let targetPath = "";
+
   try {
     const response = await httpClient.post<ILoginResponse>(
       "/auth/login",
       parsedPayload.data,
     );
 
+    if (!response.success) {
+      return {
+        success: false,
+        message: response.message || "Login failed",
+      };
+    }
+
     const { accessToken, refreshToken, token, user } = response.data;
-    const { role, emailVerified, needPasswordChange, email } = user;
+    const { role, needPasswordChange, email } = user.user;
+
     await setTokenInCookies("accessToken", accessToken);
     await setTokenInCookies("refreshToken", refreshToken);
     await setTokenInCookies("better-auth.session_token", token, 24 * 60 * 60); // 1 day in seconds
 
-    // if(!emailVerified){
-    //     redirect("/verify-email");
-    // }else // in the catch block
-
     if (needPasswordChange) {
-      //TODO : refactoring
-      redirect(`/reset-password?email=${email}`);
+      targetPath = `/reset-password?email=${encodeURIComponent(email)}`;
     } else {
-      // redirect(redirectPath || "/dashboard");
-      const targetPath =
+      targetPath =
         redirectPath && isValidRedirectForRole(redirectPath, role as UserRole)
           ? redirectPath
           : getDefaultDashboardRoute(role as UserRole);
-
-      redirect(targetPath);
     }
   } catch (error: any) {
     console.log(error, "error");
-    if (
-      error &&
-      typeof error === "object" &&
-      "digest" in error &&
-      typeof error.digest === "string" &&
-      error.digest.startsWith("NEXT_REDIRECT")
-    ) {
-      throw error;
-    }
 
     if (
       error &&
       error.response &&
-      error.response.data.message === "Email not verified"
+      error.response.data?.message === "Email not verified"
     ) {
-      redirect(`/verify-email?email=${payload.email}`);
+      targetPath = `/verify-email?email=${encodeURIComponent(payload.email)}`;
+    } else {
+      return {
+        success: false,
+        message: `Login failed: ${error?.message || "Unknown error"}`,
+      };
     }
-    return {
-      success: false,
-      message: `Login failed: ${error.message}`,
-    };
   }
+
+  if (targetPath) {
+    redirect(targetPath);
+  }
+
+  return {
+    success: false,
+    message: "An unexpected error occurred",
+  };
 };
