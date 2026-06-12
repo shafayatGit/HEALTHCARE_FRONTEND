@@ -3,5 +3,5 @@ export default function AdminDashboardLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  return <>admin dashboard layout{children}</>;
+  return <>{children}</>;
 }

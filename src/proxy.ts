@@ -37,8 +37,6 @@ export async function proxy(request: NextRequest) {
       jwtUtils.verifyToken(accessToken, process.env.JWT_ACCESS_SECRET as string)
         .data;
 
-    console.log(`DecodedAccessToken: ${JSON.stringify(decodedAccessToken)}`); // Debug log
-
     const isValidAccessToken =
       accessToken &&
       jwtUtils.verifyToken(accessToken, process.env.JWT_ACCESS_SECRET as string)
@@ -48,6 +46,7 @@ export async function proxy(request: NextRequest) {
 
     if (decodedAccessToken) {
       userRole = decodedAccessToken.role as UserRole;
+      //   console.log(`DecodedAccessToken: ${userRole}`); // Debug log
     }
 
     const routerOwner = getRouteOwner(pathname);
