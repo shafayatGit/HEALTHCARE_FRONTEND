@@ -1,11 +1,26 @@
-import React from 'react';
+import DoctorsTable from "@/src/components/modules/Admin/DoctorsManagement/DoctorsTable";
+import { getDoctors } from "@/src/service/doctor.service";
+import {
+  dehydrate,
+  HydrationBoundary,
+  QueryClient,
+} from "@tanstack/react-query";
 
-const DoctorsManagementPage = () => {
-    return (
-        <div>
-            <h1>Doctors Management</h1>
-        </div>
-    );
+const DoctorsManagementPage = async () => {
+  const queryClient = new QueryClient();
+
+  await queryClient.prefetchQuery({
+    queryKey: ["doctors"],
+    queryFn: getDoctors,
+    staleTime: 1000 * 60 * 60, // 1 hour
+    gcTime: 1000 * 60 * 60 * 6, // 1 hour
+  });
+
+  return (
+    <HydrationBoundary state={dehydrate(queryClient)}>
+      <DoctorsTable />
+    </HydrationBoundary>
+  );
 };
 
 export default DoctorsManagementPage;
