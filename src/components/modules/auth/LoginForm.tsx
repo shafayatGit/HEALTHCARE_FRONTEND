@@ -46,11 +46,11 @@ const LoginForm = () => {
         const result = (await mutateAsync(value)) as any;
 
         if (result && !result.success) {
-          setServerError(result.message || "Login failed");
+          setServerError(result.message || "Login failed. Please try again.");
           return;
         }
       } catch (error: any) {
-        console.log(`Login failed: ${error?.message}`);
+        console.log(`Login failed: ${error?.message} ${error}`);
         setServerError(`Login failed: ${error?.message || "Unexpected error"}`);
       }
     },
